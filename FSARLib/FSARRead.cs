@@ -6,37 +6,33 @@ using NoFrill.Common;
 
 namespace FSARLib
 {
-    public class FSARRead
+    public static class FSARRead
     {
-        // Init vars
-        FSARInfo CurHeader = new FSARInfo();
-        FileEntryInfo CurFileEntry;
-        String MagicWord = "FSAR";
-        Byte[] FSARWord = new Byte[0x04];
-        Byte[] FTEnd = new Byte[0x08];
-        Byte[] FTO = new Byte[0x08];
-
-        public FSARInfo ReadHeader(Byte[] Header)
+        public static FSARInfo ParseHeader(Byte[] Header)
         {
+            FSARInfo CurHeader = new FSARInfo();
+            String MagicWord = "FSAR";
+            
             if(Header.Length == 0x20 || Header.Length == 0x10) // Verify the lenght of the given header (lenght it 0x20 if it includes the 0x10 bytes of padding)
             {
                 if(Encoding.UTF8.GetString(Header, 0, 4) == MagicWord) // Verify if the magic word is right
                 {
-                    CurHeader.FileTableEnd = (int) BinUtils.ReadUInt32BE(Header, 0x08);
-                    CurHeader.FileTableObjects = (int) BinUtils.ReadUInt32BE(Header, 0x0C);
+                    CurHeader.FileTableEnd = Header.ReadInt32BE(0x08);
+                    CurHeader.FileTableObjects = Header.ReadInt32BE(0x0C);
                 }
             }
             return CurHeader;
         }
 
-        public FileEntryInfo[] GetFileEntries(Byte[] FileTable, FSARInfo HeaderInfo)
+        public static FSARFileEntryInfo[] GetFileEntries(Byte[] FileTable, int FileNum)
         {
             int ArrPos;
-            FileEntryInfo[] FileEntries = new FileEntryInfo[HeaderInfo.FileTableObjects];
+            FSARFileEntryInfo CurFileEntry;
+            FSARFileEntryInfo[] FileEntries = new FSARFileEntryInfo[FileNum];
 
-            for(int i=0; i < HeaderInfo.FileTableObjects; i++)
+            for(int i=0; i < FileNum; i++)
             {
-                CurFileEntry = new FileEntryInfo();
+                CurFileEntry = new FSARFileEntryInfo();
                 ArrPos = i * 0x120; // Current file index * Lenght of the header for a single file
                 CurFileEntry.Path = Encoding.UTF8.GetString(FileTable, ArrPos, 0x100).TrimEnd('\0');
                 CurFileEntry.FileName = Path.GetFileName(CurFileEntry.Path);
@@ -51,7 +47,7 @@ namespace FSARLib
             }
             return FileEntries;
         }
-        public FSARFile GetFile(Byte[] FilesData, FileEntryInfo FileEntry)
+        public static FSARFile GetFile(this FSARFileEntryInfo FileEntry, Byte[] FilesData)
         {
             FSARFile CurFile = new FSARFile();
             CurFile.FileHeader = FileEntry;
@@ -61,11 +57,41 @@ namespace FSARLib
             {
                 CurFile.CompressedData = new Byte[FileEntry.CompressedSize - 2];
                 Array.Copy(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
-                MemoryStream WeirdShit = new MemoryStream(CurFile.CompressedData);
-                MemoryStream WS2 = new MemoryStream();
-                DeflateStream DecompFile = new DeflateStream(WeirdShit, CompressionMode.Decompress);
-                DecompFile.CopyTo(WS2);
-                CurFile.UncompressedData = WS2.ToArray();
+                MemoryStream CompressedData = new MemoryStream(CurFile.CompressedData);
+                MemoryStream DecompressedData = new MemoryStream();
+                DeflateStream DecompFile = new DeflateStream(CompressedData, CompressionMode.Decompress);
+                DecompFile.CopyTo(DecompressedData);
+                CurFile.UncompressedData = DecompressedData.ToArray();
+
+                DecompressedData.Close();
+                DecompFile.Close();
+                CompressedData.Close();
+            }
+            else
+            {
+                Array.Copy(FilesData, (int) FileEntry.DataPos, CurFile.UncompressedData, 0, (int) FileEntry.UncompressedSize);
+            }
+            return CurFile;
+        }
+        public static FSARFile GetFile(Byte[] FilesData, FSARFileEntryInfo FileEntry)
+        {
+            FSARFile CurFile = new FSARFile();
+            CurFile.FileHeader = FileEntry;
+            CurFile.UncompressedData = new Byte[FileEntry.UncompressedSize];
+            
+            if(FileEntry.Compressed)
+            {
+                CurFile.CompressedData = new Byte[FileEntry.CompressedSize - 2];
+                Array.Copy(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
+                MemoryStream CompressedData = new MemoryStream(CurFile.CompressedData);
+                MemoryStream DecompressedData = new MemoryStream();
+                DeflateStream DecompFile = new DeflateStream(CompressedData, CompressionMode.Decompress);
+                DecompFile.CopyTo(DecompressedData);
+                CurFile.UncompressedData = DecompressedData.ToArray();
+
+                DecompressedData.Close();
+                DecompFile.Close();
+                CompressedData.Close();
             }
             else
             {

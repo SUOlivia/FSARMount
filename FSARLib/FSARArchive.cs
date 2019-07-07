@@ -9,7 +9,7 @@ namespace FSARLib
         public Int32 FileTableObjects;
     }
 
-    public class FileEntryInfo
+    public class FSARFileEntryInfo
     {
         public string Path;
         public string FileName;
@@ -22,7 +22,7 @@ namespace FSARLib
 
     public class FSARFile
     {
-        public FileEntryInfo FileHeader;
+        public FSARFileEntryInfo FileHeader;
         public Byte[] CompressedData; // Compressed data without 2 bytes of Zlib header
         public Byte[] UncompressedData;
 

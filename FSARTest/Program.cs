@@ -12,19 +12,18 @@ namespace FSARTest
             Stopwatch Time = new Stopwatch();
             
             Time.Start();
-            FSARRead ReadFAR = new FSARRead();
             Byte[] Header = new Byte[0x20];
             FSARFile[] Files;
             Byte[] FFArray = File.ReadAllBytes("test.far");
 
             // Read the header
             Buffer.BlockCopy(FFArray, 0, Header, 0, 0x20);
-            FSARInfo HeaderInfo = ReadFAR.ReadHeader(Header);
+            FSARInfo HeaderInfo = FSARRead.ParseHeader(Header);
 
             // Parse the File entries
             Byte[] FARTable = new Byte[HeaderInfo.FileTableEnd - 0x20];
             Buffer.BlockCopy(FFArray, 0x20, FARTable, 0, FARTable.Length);
-            FileEntryInfo[] FARFiles = ReadFAR.GetFileEntries(FARTable, HeaderInfo);
+            FSARFileEntryInfo[] FARFiles = FSARRead.GetFileEntries(FARTable, HeaderInfo.FileTableObjects);
 
             // Read the data of all the files
             Files = new FSARFile[HeaderInfo.FileTableObjects];
@@ -33,7 +32,7 @@ namespace FSARTest
             for(int i = 0; i < HeaderInfo.FileTableObjects; i++)
             {
                 Console.WriteLine(FARFiles[i].Path);
-                Files[i] = ReadFAR.GetFile(FilesData, FARFiles[i]);
+                Files[i] = FSARRead.GetFile(FilesData, FARFiles[i]);
             }
             FSARArchive FARArch = new FSARArchive();
             FARArch.Files = Files;
