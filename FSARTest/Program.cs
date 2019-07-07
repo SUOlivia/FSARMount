@@ -32,20 +32,20 @@ namespace FSARTest
             for(int i = 0; i < HeaderInfo.FileTableObjects; i++)
             {
                 Console.WriteLine(FARFiles[i].Path);
-                Files[i] = FSARRead.GetFile(FilesData, FARFiles[i]);
+                Files[i] = FARFiles[i].GetFile(FilesData);
             }
             FSARArchive FARArch = new FSARArchive();
             FARArch.Files = Files;
             FARArch.Header = HeaderInfo;
+            Time.Stop();
+            UInt64 TS = (UInt64) Time.ElapsedMilliseconds;
+            Console.WriteLine("It took {0}ms to extract the files from Test.far", TS);
             foreach(FSARFile CurrentFile in FARArch.Files)
             {
                 string OutStr = String.Format("test_far\\{0}", CurrentFile.FileHeader.Path);
                 Directory.CreateDirectory(String.Format("test_far\\{0}", CurrentFile.FileHeader.Directory));
                 File.WriteAllBytes(OutStr, CurrentFile.UncompressedData);
             }
-            Time.Stop();
-            UInt64 TS = (UInt64) Time.ElapsedMilliseconds;
-            Console.WriteLine("It took {0}ms to extract the files from Test.far", TS);
         }
     }
 }
