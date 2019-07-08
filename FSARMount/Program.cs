@@ -14,7 +14,7 @@ namespace FSARMount
             Timer.Start();
 
             // FSARMount file.far Z
-            string FarPath = "MetaData.far"/* args[0] */;
+            string FarPath = "Out.far"/* args[0] */;
             // char DriveLetter = 'Z' /* args[1] */;
 
             FSARArchive FARch = new FSARArchive();
@@ -25,18 +25,18 @@ namespace FSARMount
             Byte[] FileData;
  
             // Read header
-            FSARRead.fastCopyBlock(FSARData, 0, Header, 0, Header.Length);
+            FSARHelper.fastCopyBlock(FSARData, 0, Header, 0, Header.Length);
             FARch.Header = FSARRead.ParseHeader(Header);
 
             // Parse the file headers
             FileTable = new Byte[FARch.Header.FileTableEnd];
-            FSARRead.fastCopyBlock(FSARData, 0x20, FileTable, 0, FileTable.Length);
+            FSARHelper.fastCopyBlock(FSARData, 0x20, FileTable, 0, FileTable.Length);
             FileHeaders = FSARRead.GetFileEntries(FileTable, FARch.Header.FileTableObjects);
 
             // Copy the files' data to the right byte array for parsing and get the files array ready
             FARch.Files = new FSARFile[FARch.Header.FileTableObjects];
             FileData = new Byte[FSARData.Length - FARch.Header.FileTableEnd];
-            FSARRead.fastCopyBlock(FSARData, FARch.Header.FileTableEnd, FileData, 0, FileData.Length);
+            FSARHelper.fastCopyBlock(FSARData, FARch.Header.FileTableEnd, FileData, 0, FileData.Length);
             
             // Read the files
             for(int i = 0; i < FARch.Header.FileTableObjects; i++)
@@ -44,9 +44,18 @@ namespace FSARMount
                 FARch.Files[i] = FileHeaders[i].GetFile(FileData);
             }
             Timer.Stop();
-            var FinalTime = Timer.ElapsedTicks;
+            var ReadTime = Timer.Elapsed.TotalMilliseconds;
             Console.WriteLine(string.Format("Parsed files: {0}", FARch.Header.FileTableObjects));
-            Console.WriteLine(string.Format("Completed FSARArchive class in {0}ms", FinalTime / 10000));
+            Console.WriteLine(string.Format("Completed FSARArchive class in {0}ms", ReadTime));
+            Console.WriteLine("Time to reconstruct the file");
+            Timer.Restart();
+
+            Byte[] ReconstructedArch = FSARWrite.MakeFSARArchive(FARch);
+            File.WriteAllBytes("Out.far", ReconstructedArch);
+
+            Timer.Stop();
+            var WriteTime = Timer.Elapsed.TotalMilliseconds;
+            Console.WriteLine(string.Format("Completed writing archive in {0}ms", WriteTime));
         }
     }
 }

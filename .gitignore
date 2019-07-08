@@ -222,6 +222,7 @@ project.lock.json
 
 # Project Specific
 
+*.txt
 *.far
 test_far/
 

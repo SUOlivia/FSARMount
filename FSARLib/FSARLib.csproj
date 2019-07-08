@@ -4,6 +4,11 @@
     <ProjectReference Include="..\NoFrill.Common\NoFrill.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SharpZipLib" Version="1.1.0" />
+    <PackageReference Include="Spreads.Native" Version="2019.0.402" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

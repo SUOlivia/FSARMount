@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FSARMount.Bench-20190707-025007</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet=v0.11.5, OS=Windows 10.0.17763.593 (1809/October2018Update/Redstone5)
+AMD E2-7110 APU with AMD Radeon R2 Graphics, 1 CPU, 4 logical and 4 physical cores
+.NET Core SDK=2.1.504
+  [Host] : .NET Core 2.1.8 (CoreCLR 4.6.27317.03, CoreFX 4.6.27317.03), 64bit RyuJIT
+</code></pre>
+<pre><code>Job=InProcess  Toolchain=InProcessEmitToolchain  
+</code></pre>
+
+<table>
+<thead><tr><th>          Method</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Median</th>
+</tr>
+</thead><tbody><tr><td>ReadFilesNoDecomp</td><td>27.79 ms</td><td>0.5548 ms</td><td>1.5557 ms</td><td>27.33 ms</td>
+</tr><tr><td>ReadFilesDeflateStream</td><td>36.95 ms</td><td>0.7363 ms</td><td>1.0560 ms</td><td>36.62 ms</td>
+</tr><tr><td>ReadFilesSpreads</td><td>30.79 ms</td><td>0.5905 ms</td><td>0.7469 ms</td><td>30.87 ms</td>
+</tr></tbody></table>
+</body>
+</html>

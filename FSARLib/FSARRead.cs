@@ -5,19 +5,14 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using NoFrill.Common;
 
+// Deflate testing
+using Spreads.Native;
+using ICSharpCode;
+
 namespace FSARLib
 {
     public static class FSARRead
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void fastCopyBlock(Byte[] src, int src_index, Byte[] dest, int dest_index, int lenght)
-        {
-            void* from = Unsafe.AsPointer(ref src[src_index]);
-            void* to = Unsafe.AsPointer(ref dest[dest_index]);
-
-            Unsafe.CopyBlockUnaligned(to, from, (uint) lenght);
-        } 
-
         public static FSARInfo ParseHeader(Byte[] Header)
         {
             FSARInfo CurHeader = new FSARInfo();
@@ -57,7 +52,9 @@ namespace FSARLib
             }
             return FileEntries;
         }
-        public static FSARFile GetFile(this FSARFileEntryInfo FileEntry, Byte[] FilesData)
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe static FSARFile GetFile(this FSARFileEntryInfo FileEntry, Byte[] FilesData)
         {
             FSARFile CurFile = new FSARFile();
             CurFile.FileHeader = FileEntry;
@@ -66,23 +63,19 @@ namespace FSARLib
             if(FileEntry.Compressed)
             {
                 CurFile.CompressedData = new Byte[FileEntry.CompressedSize - 2];
-                fastCopyBlock(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
-                MemoryStream CompressedData = new MemoryStream(CurFile.CompressedData);
-                MemoryStream DecompressedData = new MemoryStream();
-                DeflateStream DecompFile = new DeflateStream(CompressedData, CompressionMode.Decompress);
-                DecompFile.CopyTo(DecompressedData);
-                CurFile.UncompressedData = DecompressedData.ToArray();
-
-                DecompressedData.Close();
-                DecompFile.Close();
-                CompressedData.Close();
+                CurFile.UncompressedData = new Byte[FileEntry.UncompressedSize];
+                FSARHelper.fastCopyBlock(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
+                byte* CompressedData = (byte*) Unsafe.AsPointer(ref CurFile.CompressedData[0]);
+                byte* UncompressedData = (byte*) Unsafe.AsPointer(ref CurFile.UncompressedData[0]);
+                Compression.decompress_deflate(CompressedData, (IntPtr) CurFile.CompressedData.Length, UncompressedData, (IntPtr) CurFile.UncompressedData.Length);
             }
             else
             {
-                fastCopyBlock(FilesData, (int) FileEntry.DataPos, CurFile.UncompressedData, 0, (int) FileEntry.UncompressedSize);
+                FSARHelper.fastCopyBlock(FilesData, (int) FileEntry.DataPos, CurFile.UncompressedData, 0, (int) FileEntry.UncompressedSize);
             }
             return CurFile;
         }
+
         public static FSARFile GetFile(Byte[] FilesData, FSARFileEntryInfo FileEntry)
         {
             FSARFile CurFile = new FSARFile();
@@ -92,7 +85,7 @@ namespace FSARLib
             if(FileEntry.Compressed)
             {
                 CurFile.CompressedData = new Byte[FileEntry.CompressedSize - 2];
-                fastCopyBlock(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
+                FSARHelper.fastCopyBlock(FilesData, (int) FileEntry.DataPos + 2, CurFile.CompressedData, 0, CurFile.CompressedData.Length);
                 MemoryStream CompressedData = new MemoryStream(CurFile.CompressedData);
                 MemoryStream DecompressedData = new MemoryStream();
                 DeflateStream DecompFile = new DeflateStream(CompressedData, CompressionMode.Decompress);
@@ -105,7 +98,7 @@ namespace FSARLib
             }
             else
             {
-                fastCopyBlock(FilesData, (int) FileEntry.DataPos, CurFile.UncompressedData, 0, (int) FileEntry.UncompressedSize);
+                FSARHelper.fastCopyBlock(FilesData, (int) FileEntry.DataPos, CurFile.UncompressedData, 0, (int) FileEntry.UncompressedSize);
             }
             return CurFile;
         }
