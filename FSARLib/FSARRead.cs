@@ -7,7 +7,6 @@ using NoFrill.Common;
 
 // Deflate testing
 using Spreads.Native;
-using ICSharpCode;
 
 namespace FSARLib
 {
@@ -24,6 +23,10 @@ namespace FSARLib
                 {
                     CurHeader.FileTableEnd = Header.ReadInt32BE(0x08);
                     CurHeader.FileTableObjects = Header.ReadInt32BE(0x0C);
+                }
+                else
+                {
+                    throw new Exception(string.Format("Error: expected 'FSAR' as magic word, got '{0}' instead", Encoding.UTF8.GetString(Header, 0, 4)));
                 }
             }
             return CurHeader;

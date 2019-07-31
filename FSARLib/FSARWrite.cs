@@ -64,16 +64,13 @@ namespace FSARLib
             {
                 CurHeader = FilesHeaders[f];
                 Pos = f * 0x120;
-                Console.WriteLine(Pos);
 
                 FSARHelper.fastCopyBlock(Encoding.UTF8.GetBytes(CurHeader.Path), 0, FileHeaders, Pos, Encoding.UTF8.GetByteCount(CurHeader.Path));
 
                 Pos += 0x100;
 
                 FileHeaders.WriteInt64BE(ref Pos, CurHeader.UncompressedSize);
-                // Pos += 4;
                 FileHeaders.WriteInt64BE(ref Pos, CurHeader.CompressedSize);
-                // Pos += 4;
                 FileHeaders.WriteInt64BE(ref Pos, CurHeader.DataPos);
 
                 Pos += 0x03;
@@ -86,11 +83,9 @@ namespace FSARLib
 
         public static byte[] MakeFilesData(FSARFile[] Files, Boolean UseChecks = false)
         {
-            long FilesData_Lenght = 0;
-            foreach(FSARFile File in Files)
-            {
-                FilesData_Lenght += File.FileHeader.Compressed ? File.FileHeader.CompressedSize : File.FileHeader.UncompressedSize;
-            }
+            long FilesData_Lenght = Files[Files.Length-1].FileHeader.Compressed ?
+                                    Files[Files.Length-1].FileHeader.DataPos + Files[Files.Length-1].FileHeader.CompressedSize : 
+                                    Files[Files.Length-1].FileHeader.DataPos + Files[Files.Length-1].FileHeader.UncompressedSize;
 
             Byte[] FilesData = new Byte[FilesData_Lenght];
             Byte[] CurFileData, padding;
@@ -101,14 +96,13 @@ namespace FSARLib
                 Console.WriteLine(CurFile.FileHeader.Path);
                 if(CurFile.FileHeader.Compressed)
                 {
-                    if(f != Files.Length)
+                    if(f + 1 != Files.Length && Files[f + 1].FileHeader.DataPos - CurFile.FileHeader.DataPos != CurFile.FileHeader.CompressedSize)
                     {
-                        CurFileData = new Byte[f != Files.Length ? Files[f + 1].FileHeader.DataPos - CurFile.FileHeader.DataPos : CurFile.FileHeader.CompressedSize];
+                        CurFileData = new Byte[Files[f + 1].FileHeader.DataPos - CurFile.FileHeader.DataPos];
                         padding = new Byte[CurFileData.Length - CurFile.FileHeader.CompressedSize];
-                        for(int p = 0; p > padding.Length; p++)
-                        {
-                            padding[p] = 0x2D;
-                        }
+                        for(int p = 0; p > CurFileData.Length - CurFile.FileHeader.CompressedSize; p++)
+                            padding[p] = (byte) '-';
+                        
                         FSARHelper.fastCopyBlock(padding, 0, CurFileData, CurFile.CompressedData.Length, padding.Length);
                         FSARHelper.fastCopyBlock(new byte[2]{0x78, 0xDA}, 0, CurFileData, 0, 2);
                         FSARHelper.fastCopyBlock(CurFile.CompressedData, 0, CurFileData, 2, CurFile.CompressedData.Length);
@@ -122,12 +116,11 @@ namespace FSARLib
                 }
                 else
                 {
-                   
-                    if(f + 1 < Files.Length)
+                    if(f + 1 != Files.Length && Files[f + 1].FileHeader.DataPos - CurFile.FileHeader.DataPos != CurFile.FileHeader.UncompressedSize)
                     {
                         CurFileData = new Byte[f != Files.Length ? Files[f].FileHeader.DataPos - CurFile.FileHeader.DataPos : CurFile.FileHeader.UncompressedSize];
                         padding = new Byte[CurFileData.Length - CurFile.FileHeader.UncompressedSize];
-                        for(int p = 0; p > padding.Length; p++)
+                        for(int p = 0; p > CurFileData.Length - CurFile.FileHeader.UncompressedSize; p++)
                         {
                             padding[p] = (byte) '-';
                         }
